@@ -1,0 +1,27 @@
+{
+  "name": "sls-custom-domain",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "rm -rf dist && parcel build src/handler.js --target node",
+    "predeploy": "yarn run build && yarn run prepare:sharp",
+    "postdeploy": "yarn run reset:sharp",
+    "deploy": "serverless deploy",
+    "create-domain": "serverless create_domain",
+    "remove": "serverless remove",
+    "prepare:sharp": "rm -rf node_modules/sharp && SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install --arch=x64 --platform=linux --target=8.10.0 sharp",
+    "reset:sharp": "rm -rf node_modules/sharp package-lock.json && yarn add sharp"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.11.0",
+    "serverless": "^1.36.1",
+    "serverless-api-cloudfront": "^0.9.4",
+    "serverless-apigw-binary": "^0.4.4",
+    "serverless-apigwy-binary": "^1.0.0",
+    "serverless-dotenv-plugin": "^2.0.1"
+  },
+  "dependencies": {
+    "sharp": "^0.21.2"
+  }
+}

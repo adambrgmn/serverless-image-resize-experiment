@@ -1,0 +1,53 @@
+service: fransvilhelm-api
+
+# Necessary plugins in order to return a binary image and also to setup
+# CloudFront in front of mya stack
+plugins:
+  - serverless-api-cloudfront
+  - serverless-apigw-binary
+  - serverless-apigwy-binary
+  - serverless-dotenv-plugin # This will load env variables from .env
+
+provider:
+  name: aws
+  runtime: nodejs8.10 # Node 8.10 makes it possible to use async/await and more!
+  stage: ${opt:stage, self:custom.defaultStage}
+  region: ${opt:region, self:custom.defaultRegion}
+
+custom:
+  defaultStage: development
+  defaultRegion: eu-central-1 # I'm european so this is my prefered region
+
+  # The types defined here can be anything – you an techincally return binary
+  # "text/html" if you want or "application/pdf"
+  # The "*" makes it possible to target every image MIME-type
+  apigwBinary:
+    types:
+      - 'image/*'
+
+  apiCloudFront:
+    domain: api.fransvilhelm.com
+    certificate: ${env:ACM_CERTIFICATE}
+    compress: true
+    cookies: none
+    headers:
+      # Accept needs to be passed on in order for API Gateway to properly return
+      # a binary response for images
+      - Accept
+
+    # My implementation relies on query strings. So they need to be accounted
+    # for whine cacheing – and they need to be passed along to my Lambda
+    querystring: all
+
+environment:
+  NODE_ENV: ${opt:stage, self:custom.defaultStage}
+
+functions:
+  cat:
+    handler: dist/handler.cat
+    events:
+      - http:
+          path: cat
+          method: get
+          # Also necessary in order to return a binary
+          contentHandling: CONVERT_TO_BINARY
