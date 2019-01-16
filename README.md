@@ -1,5 +1,3 @@
-https://forums.aws.amazon.com/thread.jspa?messageID=753476&#758387
-
 # Lambda Image Resizer with CloudFront
 
 This is an experiment to get a Lambda function – that resizes images – to work
