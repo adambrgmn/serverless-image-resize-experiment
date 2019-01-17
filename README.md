@@ -259,8 +259,11 @@ some extra configurations to `serverless.yml`:
 custom:
   # ...
   apiCloudFront:
-    domain: api.fransvilhelm.com # The domain you would like to use
-    certificate: <arn> # A AWS Certificate Manager issued SSL certificate, preferably issued for api.fransvilhelm.com or *.fransvilhelm.com
+    # The domain you would like to use. Might also be a list of domains
+    domain: api.fransvilhelm.com 
+    # A AWS Certificate Manager issued SSL certificate, preferably issued for
+    # api.fransvilhelm.com or *.fransvilhelm.com – must be in us-east-1 region
+    certificate: <arn> 
     compress: true
     cookies: none
     headers:
