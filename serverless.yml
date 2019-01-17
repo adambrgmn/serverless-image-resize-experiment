@@ -16,7 +16,7 @@ provider:
 
 custom:
   defaultStage: development
-  defaultRegion: eu-central-1 # I'm european so this is my prefered region
+  defaultRegion: eu-north-1 # I'm a swede so this is my prefered region
 
   # The types defined here can be anything – you an techincally return binary
   # "text/html" if you want or "application/pdf"
@@ -33,6 +33,7 @@ custom:
     headers:
       # Accept needs to be passed on in order for API Gateway to properly return
       # a binary response for images
+      # See: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/RequestAndResponseBehaviorCustomOrigin.html#request-custom-headers-behavior
       - Accept
 
     # My implementation relies on query strings. So they need to be accounted

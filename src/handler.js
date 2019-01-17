@@ -5,32 +5,36 @@ import sharp from 'sharp';
 
 const readFile = promisify(fs.readFile);
 
+const log = entry => console.log(JSON.stringify(entry));
+
 export const cat = async (event, context) => {
-  console.log(JSON.stringify(event));
+  log(JSON.stringify(event));
 
   const imgBuffer = await readFile(path.join(__dirname, '../static/cat.jpg'));
+  const image = sharp(imgBuffer).withMetadata();
 
-  let image = sharp(imgBuffer).resize({
+  image.resize({
     width: 200,
     height: 200,
     fit: sharp.fit.cover,
     position: sharp.strategy.entropy,
   });
 
-  if (event.queryStringParameters && event.queryStringParameters.webp === '1') {
-    image = image.webp();
-  }
+  const ignoreWebp =
+    event.queryStringParameters && event.queryStringParameters.webp === '0';
+  const supportsWebp =
+    event.headers.Accept && event.headers.Accept.includes('image/webp');
+
+  if (!ignoreWebp && supportsWebp) image.webp();
 
   const { info, data } = await image.toBuffer({ resolveWithObject: true });
-
-  console.log(JSON.stringify(info));
 
   const maxAge =
     process.env.NODE_ENV === 'production'
       ? 365 * 24 * 60 * 60 // One year if in production
       : 60; // One minute if in development mode
 
-  return {
+  const response = {
     statusCode: 200,
     headers: {
       'Content-Type': `image/${info.format}`,
@@ -40,4 +44,7 @@ export const cat = async (event, context) => {
     body: data.toString('base64'),
     isBase64Encoded: true,
   };
+
+  log(JSON.stringify({ ...response, body: '<raw_base64_encoded_image_data>' }));
+  return response;
 };
