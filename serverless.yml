@@ -14,9 +14,41 @@ provider:
   stage: ${opt:stage, self:custom.defaultStage}
   region: ${opt:region, self:custom.defaultRegion}
 
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - 's3:AbortMultipartUpload'
+        - 's3:DeleteObject'
+        - 's3:GetBucketAcl'
+        - 's3:GetBucketLocation'
+        - 's3:GetBucketPolicy'
+        - 's3:GetObject'
+        - 's3:GetObjectAcl'
+        - 's3:ListBucket'
+        - 's3:ListBucketMultipartUploads'
+        - 's3:ListMultipartUploadParts'
+        - 's3:PutObject'
+        - 's3:PutObjectAcl'
+      Resource:
+        'Fn::GetAtt':
+          - S3BucketUploads
+          - Arn
+    - Effect: 'Allow'
+      Action:
+        - 's3:ListBucket'
+      Resource:
+        'Fn::GetAtt':
+          - S3BucketUploads
+          - Arn
+      Condition:
+        StringLike:
+          s3:prefix:
+            - "' . ( $path ? $path . '/' : '' ) . '*"
+
 custom:
   defaultStage: development
   defaultRegion: eu-north-1 # I'm a swede so this is my prefered region
+  bucketName: fransvilhelm-uploads-${self:provider.stage}
 
   # The types defined here can be anything – you an techincally return binary
   # "text/html" if you want or "application/pdf"
@@ -40,15 +72,41 @@ custom:
     # for whine cacheing – and they need to be passed along to my Lambda
     querystring: all
 
-environment:
-  NODE_ENV: ${opt:stage, self:custom.defaultStage}
-
 functions:
-  cat:
-    handler: dist/handler.cat
+  resize:
+    handler: dist/handler.resize
+    environment:
+      NODE_ENV: ${opt:stage, self:custom.defaultStage}
+      S3_BUCKET: ${self:custom.bucketName}
+      S3_REGION: ${self:provider.region}
     events:
       - http:
-          path: cat
+          path: '{proxy+}'
           method: get
           # Also necessary in order to return a binary
           contentHandling: CONVERT_TO_BINARY
+
+resources:
+  Resources:
+    S3BucketUploads:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName}
+
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        PolicyDocument:
+          Id: UploadsPolicy
+          Version: '2012-10-17'
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: '*'
+              Action: s3:GetObject
+              Resource: !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3BucketUploads
+                  - /*
+        Bucket: !Ref S3BucketUploads
