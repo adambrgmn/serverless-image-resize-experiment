@@ -11,7 +11,8 @@
     "create-domain": "serverless create_domain",
     "remove": "serverless remove",
     "prepare:sharp": "rm -rf node_modules/sharp && SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install --arch=x64 --platform=linux --target=8.10.0 sharp",
-    "reset:sharp": "rm -rf node_modules/sharp package-lock.json && yarn add sharp"
+    "reset:sharp": "rm -rf node_modules/sharp package-lock.json && yarn add sharp",
+    "preview": "parcel preview/index.html"
   },
   "devDependencies": {
     "parcel-bundler": "^1.11.0",
@@ -22,6 +23,8 @@
     "serverless-dotenv-plugin": "^2.0.1"
   },
   "dependencies": {
+    "react": "^16.8.0-alpha.1",
+    "react-dom": "^16.8.0-alpha.1",
     "sharp": "^0.21.2"
   }
 }
