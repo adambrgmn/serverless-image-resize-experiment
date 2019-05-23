@@ -5,13 +5,12 @@
   "license": "MIT",
   "scripts": {
     "build": "rm -rf dist && parcel build src/handler.js --target node",
-    "predeploy": "yarn run build && yarn run prepare:sharp",
-    "postdeploy": "yarn run reset:sharp",
-    "deploy": "serverless deploy",
+    "predeploy": "docker build -t lambda-deploy .",
+    "deploy": "docker run --env STAGE=${STAGE} lambda-deploy yarn serverless deploy --stage=$STAGE",
+    "predeploy:fn": "docker build -t lambda-deploy .",
+    "deploy:fn": "docker run --env STAGE=${STAGE} lambda-deploy yarn serverless deploy function -f resize --stage=${STAGE}",
     "create-domain": "serverless create_domain",
     "remove": "serverless remove",
-    "prepare:sharp": "rm -rf node_modules/sharp && SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install --arch=x64 --platform=linux --target=8.10.0 sharp",
-    "reset:sharp": "rm -rf node_modules/sharp package-lock.json && yarn add sharp",
     "preview": "parcel preview/index.html"
   },
   "devDependencies": {

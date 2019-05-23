@@ -37,21 +37,48 @@ for a Mac and Lambdas run on Linux instances. This becomes a problem since
 Serverless packages everything on the machine running `serverless deploy` and
 there are no install steps inside the lambda container.
 
-But this was easily solved by using the method recommended in
-[sharp's documentation](https://sharp.pixelplumbing.com/en/stable/install/#aws-lambda).
-So now my deploy process is something like this:
+At first I tried the first solution from [sharp's documentation](https://sharp.pixelplumbing.com/en/stable/install/#aws-lambda).
+But it proved to not work as I had expected. Instead I went with a solution
+inspired by the second tip from the sharp docs – a Docker-based
+install-build-deploy workflow.
 
-```sh
-rm -rf node_modules/sharp && SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install --arch=x64 --platform=linux --target=8.10.0 sharp
-serverless deploy
-rm -rf node_modules/sharp package-lock.json && yarn add sharp
+First the `Dockerfile`:
+
+```dockerfile
+# The base image resembles the Lambda runtime as closely as possible
+FROM lambci/lambda:build-nodejs8.10
+RUN npm install -g yarn
+
+# The STAGE environment variable can be overridden by defining it before deploy
+# Example: `STAGE=production yarn run deploy`
+ENV STAGE development
+
+# We copy package.json and yarn.lock before any other files in order to leverage
+# Dockers caching before running `yarn install`
+COPY package.json yarn.lock ./
+RUN yarn install --force
+
+# All files are blindly copied over (except those defined inside .dockerignore)
+COPY . .
+
+# Lastly we build out the dist files
+RUN yarn run build
 ```
 
-It practically installs sharp with a specified target and platform (I had to use
-npm here since yarn doesn't seem to have this ability). Also note that I'm
-setting `SHARP_IGNORE_GLOBAL_LIBVIPS=1` before install to
-[ensure that sharp bundles libvps](https://sharp.pixelplumbing.com/en/stable/install/#pre-compiled-libvips-binaries),
-even if it happens to exist globally.
+Then we will use that Dockerfile to run the deploy commands.
+
+```sh
+STAGE=production
+docker build -t lambda-deploy .
+docker run --env-file .env --env STAGE=${STAGE} lambda-deploy yarn serverless deploy --stage=${STAGE}
+```
+
+This `Dockerfile` will take the command given at the end (after `lambda-deploy`,
+the name of the image) and run that script in the images environment, which in
+this case closely resembles the AWS Lambda runtime.
+
+This means that the correct native modules will be installed and packaged
+correctly.
 
 ## Returning binaries
 
@@ -260,10 +287,10 @@ custom:
   # ...
   apiCloudFront:
     # The domain you would like to use. Might also be a list of domains
-    domain: api.fransvilhelm.com 
+    domain: api.fransvilhelm.com
     # A AWS Certificate Manager issued SSL certificate, preferably issued for
     # api.fransvilhelm.com or *.fransvilhelm.com – must be in us-east-1 region
-    certificate: <arn> 
+    certificate: <arn>
     compress: true
     cookies: none
     headers:
